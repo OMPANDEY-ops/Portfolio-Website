@@ -27,60 +27,38 @@ class TTSService {
       this.stop();
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
       
-      // Basic jaw movement simulation
-      const simulateJaw = () => {
-        if (options?.onJawUpdate) {
-          // Random amplitude between 0.1 and 1.0 when speaking
-          const amplitude = Math.random() * 0.9 + 0.1;
-          options.onJawUpdate(amplitude);
-        }
-      };
+      // Softer, gentle volume and natural pitch/rate
+      utterance.volume = 0.55; // Softer voice volume
+      utterance.rate = 0.92;   // Natural, calm pace
+      utterance.pitch = 0.95;  // Slightly warmer tone
+
+      // Try selecting a natural English voice if available
+      const voices = this.synth.getVoices();
+      const preferredVoice = voices.find(
+        (v) => (v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Guy') || v.name.includes('David') || v.name.includes('Male')))
+      ) || voices.find((v) => v.lang.startsWith('en'));
+
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
 
       utterance.onstart = () => {
         if (options?.onStart) options.onStart();
-        if (options?.onJawUpdate) {
-          this.jawInterval = setInterval(simulateJaw, 150); // Update jaw every 150ms
-        }
       };
 
       utterance.onend = () => {
-        this.stopJawSimulation(options);
         if (options?.onEnd) options.onEnd();
         resolve();
       };
 
       utterance.onerror = () => {
-        this.stopJawSimulation(options);
         if (options?.onEnd) options.onEnd();
         resolve();
       };
 
-      utterance.onboundary = (event) => {
-        if (options?.onBoundary) {
-          options.onBoundary(event.charIndex);
-        }
-        // Force a larger jaw movement on word boundary
-        if (options?.onJawUpdate) {
-          options.onJawUpdate(Math.random() * 0.5 + 0.5);
-        }
-      };
-
       this.synth.speak(utterance);
     });
-  }
-
-  private stopJawSimulation(options?: TTSOptions) {
-    if (this.jawInterval) {
-      clearInterval(this.jawInterval);
-      this.jawInterval = null;
-    }
-    if (options?.onJawUpdate) {
-      options.onJawUpdate(0); // Close mouth
-    }
   }
 
   public stop(): void {

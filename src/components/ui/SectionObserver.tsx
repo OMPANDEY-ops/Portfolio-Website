@@ -10,10 +10,7 @@ const SECTION_IDS: ActiveSection[] = ['home', 'about', 'tech-stack', 'projects',
 
 export default function SectionObserver() {
   const setActiveSection = usePortfolioStore((s) => s.setActiveSection);
-  const setAvatarState = usePortfolioStore((s) => s.setAvatarState);
-  const setCaption = usePortfolioStore((s) => s.setCaption);
   const setSpeaking = usePortfolioStore((s) => s.setSpeaking);
-  const setJawOpenValue = usePortfolioStore((s) => s.setJawOpenValue);
   const setHasSpokenOnce = usePortfolioStore((s) => s.setHasSpokenOnce);
   const isMuted = usePortfolioStore((s) => s.isMuted);
   const isLoaded = usePortfolioStore((s) => s.isLoaded);
@@ -28,26 +25,19 @@ export default function SectionObserver() {
     if (!line) return;
 
     spokenSections.current.add(section);
-    setCaption(line.text);
     setHasSpokenOnce(true);
 
     if (!isMuted) {
       ttsService.stop();
-      setAvatarState('talking');
       setSpeaking(true);
       ttsService.speak(line.text, {
         onStart: () => setSpeaking(true),
         onEnd: () => {
           setSpeaking(false);
-          setAvatarState(section === 'literature' ? 'seated_idle' : 'idle');
-          setTimeout(() => setCaption(''), 4000);
         },
-        onJawUpdate: (v: number) => setJawOpenValue(v),
       });
-    } else {
-      setTimeout(() => setCaption(''), 6000);
     }
-  }, [isMuted, setAvatarState, setCaption, setHasSpokenOnce, setJawOpenValue, setSpeaking]);
+  }, [isMuted, setHasSpokenOnce, setSpeaking]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -61,14 +51,7 @@ export default function SectionObserver() {
               lastSection.current = sectionId;
               setActiveSection(sectionId);
 
-              // Update avatar state based on section
-              if (sectionId === 'literature') {
-                setAvatarState('seated_idle');
-              } else {
-                setAvatarState('idle');
-              }
-
-              // Trigger speech for sections that have lines
+              // Trigger softer speech voiceover for section
               speakForSection(sectionId);
             }
           }
@@ -82,18 +65,16 @@ export default function SectionObserver() {
       if (el) observer.observe(el);
     });
 
-    // Speak the hero intro after a short delay
+    // Speak hero intro after short delay
     const introTimeout = setTimeout(() => {
       speakForSection('home');
-      setAvatarState('waving');
-      setTimeout(() => setAvatarState('idle'), 2000);
-    }, 1500);
+    }, 1200);
 
     return () => {
       observer.disconnect();
       clearTimeout(introTimeout);
     };
-  }, [isLoaded, setActiveSection, setAvatarState, speakForSection]);
+  }, [isLoaded, setActiveSection, speakForSection]);
 
   return null;
 }
